@@ -72,8 +72,9 @@ love.keypressed = (key, scancode, isrepeat) ->
         data.player.y -= 1  unless data.player.y <= 1
       when "down","s"
         data.player.y += 1  unless data.player.y >= #data.board[data.player.x] - 2
-      when "space"
-        stinky! -- Runtime error!
+      -- This was for testing the errorhandler implementation.
+      -- when "space"
+        -- stinky! -- Runtime error!
 
   -- Collect sticks.
   if data.player.x != oldx or data.player.y != oldy
@@ -136,13 +137,11 @@ love.draw = ->
 
   -- Draw the score.
   do
-    -- angle = 0
     amount = 0
     if data.lastCollectTime != 0
       elapsed = love.timer.getTime! - data.lastCollectTime
       f = math.max(0, 1.0 - elapsed)
       amount = -((math.sin(elapsed * 4 * math.pi * 2)+1)/2) * f
-      -- angle = amount * math.pi * 5/180
     love.graphics.setColor 1,1,1,1
     love.graphics.print "SCORE: " .. data.collected, 20,15+amount*8, 0, 2,2
 

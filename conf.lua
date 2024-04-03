@@ -1,5 +1,5 @@
 
--- Import LuLPeg.
+-- Import LPeg, fallback to LuLPeg.
 local success, lpeg = pcall(require, "lpeg")
 lpeg = success and lpeg or require"lib.lulpeg":register(not _ENV and _G)
 
@@ -10,7 +10,4 @@ require 'lib.moonscript'
 function love.conf(t)
   t.version = "11.5"
   t.window.title = "Pickin' Sticks"
-  t.modules.physics = false
-  t.modules.joystick = false
-  t.modules.thread = false
 end
