@@ -3,17 +3,14 @@
 love.filesystem.setRequirePath("?.lua;?/init.lua;lib/?.lua;lib/?/init.lua")
 love.filesystem.setCRequirePath("??;lib/??")
 
--- Set up native require paths (for LPeg).
+-- Import LPeg for current platform, fallback to LuLPeg.
 do
+  -- Set up native require paths (for LPeg).
   local os = require'love'.system.getOS()
-  local success, lpeg
-
   local c_require_path = love.filesystem.getCRequirePath()
-
   if os == "OS X" then
     print "setting LPeg require path for macOS ARM"
     love.filesystem.setCRequirePath(c_require_path .. ";lib/macOS_arm/??")
-
     -- If it doesn't load, try x64 architecture instead. Stupid hack.
     local success = pcall(require, "lpeg")
     if not success then
@@ -26,8 +23,7 @@ do
   else
     print "WARNING: Supply LPeg .so for your platform here!"
   end
-
-  -- Import LPeg, fallback to LuLPeg.
+  -- Import LPeg
   local success, lpeg = pcall(require, "lpeg")
   if success then
     print("LPeg loaded successfully.")
