@@ -208,6 +208,7 @@ package.preload['moonscript.cmd.watchers'] = function()
                 local file
                 file = _des_0[1]
                 local time = lfs.attributes(file, "modification")
+                print(file, time)
                 if not (time) then
                   mod_time[file] = nil
                   _continue_0 = true
@@ -350,20 +351,12 @@ package.preload['moonscript.cmd.moonc'] = function()
     end
     if opts.show_parse_tree then
       local dump = require("moonscript.dump")
-      print(dump.tree(tree))
+      dump.tree(tree)
       return true
     end
     local compile_time
     if opts.benchmark then
       compile_time = gettime()
-    end
-    do
-      local mod = opts.transform_module
-      if mod then
-        local file = assert(loadfile(mod))
-        local fn = assert(file())
-        tree = assert(fn(tree))
-      end
     end
     local code, posmap_or_err, err_pos = compile.tree(tree)
     if not (code) then
@@ -560,8 +553,7 @@ package.preload['moonscript.cmd.coverage'] = function()
       process_line = function(self, _, line_no)
         local debug_data = debug.getinfo(2, "S")
         local source = debug_data.source
-        local _update_0, _update_1 = source, line_no
-        self.line_counts[_update_0][_update_1] = self.line_counts[_update_0][_update_1] + 1
+        self.line_counts[source][line_no] = self.line_counts[source][line_no] + 1
       end,
       format_results = function(self)
         local line_table = require("moonscript.line_tables")
@@ -582,8 +574,7 @@ package.preload['moonscript.cmd.coverage'] = function()
                   _continue_1 = true
                   break
                 end
-                local _update_0, _update_1 = file, position
-                positions[_update_0][_update_1] = positions[_update_0][_update_1] + count
+                positions[file][position] = positions[file][position] + count
                 _continue_1 = true
               until true
               if not _continue_1 then
@@ -703,8 +694,7 @@ package.preload['moonscript.cmd.lint'] = function()
               _continue_0 = true
               break
             end
-            local _update_0 = pos
-            names_by_position[_update_0] = names_by_position[_update_0] or { }
+            names_by_position[pos] = names_by_position[pos] or { }
             insert(names_by_position[pos], name)
             _continue_0 = true
           until true
@@ -1183,16 +1173,11 @@ package.preload['moonscript.dump'] = function()
   end
   local tree
   tree = function(block)
-    return table.concat((function()
-      local _accum_0 = { }
-      local _len_0 = 1
-      for _index_0 = 1, #block do
-        local value = block[_index_0]
-        _accum_0[_len_0] = flat_value(value)
-        _len_0 = _len_0 + 1
-      end
-      return _accum_0
-    end)(), "\n")
+    local _list_0 = block
+    for _index_0 = 1, #_list_0 do
+      local value = _list_0[_index_0]
+      print(flat_value(value))
+    end
   end
   return {
     value = value,
@@ -1297,7 +1282,8 @@ package.preload['moonscript.compile'] = function()
             end
             insert(buffer, l)
             if "string" == type(self[i + 1]) then
-              if l:sub(-1) ~= ',' and l:sub(-3) ~= 'end' and self[i + 1]:sub(1, 1) == "(" then
+              local lc = l:sub(-1)
+              if (lc == ")" or lc == "]") and self[i + 1]:sub(1, 1) == "(" then
                 insert(buffer, ";")
               end
             end
@@ -1641,8 +1627,7 @@ package.preload['moonscript.compile'] = function()
           self.next:render(buffer)
         else
           if #self._lines == 0 and "string" == type(buffer[#buffer]) then
-            local _update_0 = #buffer
-            buffer[_update_0] = buffer[_update_0] .. (" " .. (unpack(Lines():add(self.footer))))
+            buffer[#buffer] = buffer[#buffer] .. (" " .. (unpack(Lines():add(self.footer))))
           else
             buffer:add(self._lines)
             buffer:add(self.footer)
@@ -2126,8 +2111,7 @@ package.preload['moonscript.parse.util'] = function()
       { }
     }
     for c in str:gmatch(".") do
-      local _update_0 = #lines
-      lines[_update_0] = lines[_update_0] or { }
+      lines[#lines] = lines[#lines] or { }
       table.insert(lines[#lines], c)
       if c == "\n" then
         lines[#lines + 1] = { }
@@ -2692,52 +2676,16 @@ package.preload['moonscript.compile.value'] = function()
       return self:line("not ", self:value(node[2]))
     end,
     self = function(self, node)
-      local field_name = self:name(node[2])
-      if data.lua_keywords[field_name] then
-        return self:value({
-          "chain",
-          "self",
-          {
-            "index",
-            {
-              "string",
-              '"',
-              field_name
-            }
-          }
-        })
-      else
-        return "self." .. tostring(field_name)
-      end
+      return "self." .. self:name(node[2])
     end,
     self_class = function(self, node)
-      local field_name = self:name(node[2])
-      if data.lua_keywords[field_name] then
-        return self:value({
-          "chain",
-          "self",
-          {
-            "dot",
-            "__class"
-          },
-          {
-            "index",
-            {
-              "string",
-              '"',
-              field_name
-            }
-          }
-        })
-      else
-        return "self.__class." .. tostring(field_name)
-      end
+      return "self.__class." .. self:name(node[2])
     end,
     self_colon = function(self, node)
-      return "self:" .. tostring(self:name(node[2]))
+      return "self:" .. self:name(node[2])
     end,
     self_class_colon = function(self, node)
-      return "self.__class:" .. tostring(self:name(node[2]))
+      return "self.__class:" .. self:name(node[2])
     end,
     ref = function(self, value)
       do
@@ -3673,11 +3621,7 @@ package.preload['moonscript.util'] = function()
           lines = _accum_0
         end
         seen[what] = false
-        local class_name
-        if what.__class then
-          class_name = "<" .. tostring(what.__class.__name) .. ">"
-        end
-        return tostring(class_name or "") .. "{\n" .. concat(lines) .. (" "):rep((depth - 1) * 4) .. "}\n"
+        return "{\n" .. concat(lines) .. (" "):rep((depth - 1) * 4) .. "}\n"
       else
         return tostring(what) .. "\n"
       end
@@ -4383,7 +4327,6 @@ package.preload['moonscript.transform.destructure'] = function()
   end
   local build_assign
   build_assign = function(scope, destruct_literal, receiver)
-    assert(receiver, "attempting to build destructure assign with no receiver")
     local extracted_names = extract_assign_names(destruct_literal)
     local names = { }
     local values = { }
@@ -5393,85 +5336,18 @@ package.preload['moonscript.transform.statement'] = function()
       if not op_final then
         error("Unknown op: " .. op)
       end
-      local lifted
-      if ntype(name) == "chain" then
-        lifted = { }
-        local new_chain
-        do
-          local _accum_0 = { }
-          local _len_0 = 1
-          for _index_0 = 3, #name do
-            local part = name[_index_0]
-            if ntype(part) == "index" then
-              local proxy = NameProxy("update")
-              table.insert(lifted, {
-                proxy,
-                part[2]
-              })
-              _accum_0[_len_0] = {
-                "index",
-                proxy
-              }
-            else
-              _accum_0[_len_0] = part
-            end
-            _len_0 = _len_0 + 1
-          end
-          new_chain = _accum_0
-        end
-        if next(lifted) then
-          name = {
-            name[1],
-            name[2],
-            unpack(new_chain)
-          }
-        end
-      end
       if not (value_is_singular(exp)) then
         exp = {
           "parens",
           exp
         }
       end
-      local out = build.assign_one(name, {
+      return build.assign_one(name, {
         "exp",
         name,
         op_final,
         exp
       })
-      if lifted and next(lifted) then
-        local names
-        do
-          local _accum_0 = { }
-          local _len_0 = 1
-          for _index_0 = 1, #lifted do
-            local l = lifted[_index_0]
-            _accum_0[_len_0] = l[1]
-            _len_0 = _len_0 + 1
-          end
-          names = _accum_0
-        end
-        local values
-        do
-          local _accum_0 = { }
-          local _len_0 = 1
-          for _index_0 = 1, #lifted do
-            local l = lifted[_index_0]
-            _accum_0[_len_0] = l[2]
-            _len_0 = _len_0 + 1
-          end
-          values = _accum_0
-        end
-        out = build.group({
-          {
-            "assign",
-            names,
-            values
-          },
-          out
-        })
-      end
-      return out
     end,
     import = function(self, node)
       local names, source = unpack(node, 2)
