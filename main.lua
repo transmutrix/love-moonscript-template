@@ -23,14 +23,15 @@ do
   elseif os == "Windows" then
     print "setting LPeg require path for Windows x64"
     love.filesystem.setCRequirePath(c_require_path .. ";lib/win32_x64/??")
-    error "TODO: Put the DLL here!"
   else
     print "WARNING: Supply LPeg .so for your platform here!"
   end
 
   -- Import LPeg, fallback to LuLPeg.
   local success, lpeg = pcall(require, "lpeg")
-  if not success then
+  if success then
+    print("LPeg loaded successfully.")
+  else
     print("WARNING: Falling back to LuLPeg. Some MoonScript features may not work!")
     lpeg = require("lulpeg"):register(not _ENV and _G)
   end
